@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JavaBridge - Traductor Java a Python</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <header>
+        <h1>JavaBridge - Traductor Java a Python</h1>
+    </header>
+    
+    <main>
+        <div class="editor-container">
+            <div class="java-editor">
+                <h3>Código Java</h3>
+                <textarea id="javaCode" placeholder="// Escribe tu código Java aquí...">
+public class MiPrograma {
+    public static void main(String[] args) {
+        // Tu código aquí
+    }
+}</textarea>
+            </div>
+            
+            <div class="python-output">
+                <h3>Python Traducido</h3>
+                <textarea id="pythonCode" readonly placeholder="El código Python traducido aparecerá aquí..."></textarea>
+            </div>
+        </div>
+        
+        <div class="controls">
+            <button id="translateBtn">Generar Traducción</button>
+            <button id="tokensBtn">Ver Tokens</button>
+            <button id="simulateBtn">Simular Ejecución</button>
+        </div>
+        
+        <div class="reports">
+            <div id="tokensReport"></div>
+            <div id="errorsReport"></div>
+        </div>
+    </main>
+    
+    <script src="js/lexer.js"></script>
+    <script src="js/parser.js"></script>
+    <script src="js/translator.js"></script>
+    <script src="js/simulator.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
