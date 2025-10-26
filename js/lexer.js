@@ -1,4 +1,4 @@
-// js/lexer.js
+// js/lexer.js - LEXER COMPLETO Y CORREGIDO
 class JavaLexer {
     constructor(sourceCode) {
         this.sourceCode = sourceCode;
@@ -10,17 +10,18 @@ class JavaLexer {
         
         // Palabras reservadas
         this.keywords = new Set([
-    'public', 'class', 'static', 'void', 'main', 'String',
-    'int', 'double', 'char', 'boolean', 'true', 'false', 
-    'if', 'else', 'for', 'while', 'System', 'out', 'println'
-    // 'args' REMOVED - no es palabra reservada
-]);
+            'public', 'class', 'static', 'void', 'main', 'String',
+            'int', 'double', 'char', 'boolean', 'true', 'false', 
+            'if', 'else', 'for', 'while', 'System', 'out', 'println'
+        ]);
         
         // Símbolos
-       this.symbols = new Set([
-    '{', '}', '(', ')', '[', ']', ';', ',', '=', '+', '-', '*', '/',
-    '==', '!=', '>', '<', '>=', '<=', '++', '--', '.'  // ← Agregar el punto aquí
-]);
+        this.symbols = new Set([
+            '{', '}', '(', ')', '[', ']', ';', ',', '=', '+', '-', '*', '/',
+            '==', '!=', '>', '<', '>=', '<=', '++', '--', '.'
+        ]);
+
+        console.log("✅ Lexer inicializado");
     }
 
     // Método principal para analizar
@@ -31,9 +32,15 @@ class JavaLexer {
         this.line = 1;
         this.column = 1;
 
+        console.log("🔍 LEXER: Analizando código...");
+        console.log("Código fuente:", JSON.stringify(this.sourceCode));
+
         while (this.position < this.sourceCode.length) {
             const char = this.sourceCode[this.position];
+            const startPos = this.position;
             
+            console.log(`Procesando carácter: '${char}' (posición ${this.position}, línea ${this.line}, columna ${this.column})`);
+
             if (this.isWhitespace(char)) {
                 this.skipWhitespace();
             } else if (this.isLetter(char) || char === '_') {
@@ -49,12 +56,24 @@ class JavaLexer {
             } else if (this.isSymbol(char)) {
                 this.readSymbol();
             } else {
-                this.addError(`Carácter no reconocido: '${char}'`);
+                console.log(`❌ Carácter no reconocido: '${char}' (ASCII: ${char.charCodeAt(0)})`);
+                this.addError(`Carácter no reconocido: '${char}'`, this.line, this.column);
+                this.position++;
+                this.column++;
+            }
+
+            // Verificar que avanzamos para evitar loop infinito
+            if (this.position === startPos) {
+                console.log("⚠️  El lexer no avanzó, forzando avance...");
                 this.position++;
                 this.column++;
             }
         }
 
+        console.log("✅ LEXER: Completado. Tokens:", this.tokens.length, "Errores:", this.errors.length);
+        console.log("Tokens:", this.tokens);
+        console.log("Errores:", this.errors);
+        
         return {
             tokens: this.tokens,
             errors: this.errors
@@ -67,6 +86,8 @@ class JavaLexer {
         const startLine = this.line;
         const startColumn = this.column;
 
+        console.log(`📖 Leyendo identificador desde posición ${start}`);
+
         while (this.position < this.sourceCode.length && 
                (this.isLetter(this.sourceCode[this.position]) || 
                 this.isDigit(this.sourceCode[this.position]) ||
@@ -76,12 +97,15 @@ class JavaLexer {
         }
 
         const lexeme = this.sourceCode.substring(start, this.position);
+        console.log(`📖 Identificador encontrado: '${lexeme}'`);
         
         let type;
         if (this.keywords.has(lexeme)) {
             type = 'PALABRA_RESERVADA';
+            console.log(`   → Es palabra reservada`);
         } else {
             type = 'IDENTIFICADOR';
+            console.log(`   → Es identificador`);
         }
 
         this.addToken(lexeme, type, startLine, startColumn);
@@ -95,6 +119,8 @@ class JavaLexer {
         let hasDecimal = false;
         let isValid = true;
 
+        console.log(`🔢 Leyendo número desde posición ${start}`);
+
         while (this.position < this.sourceCode.length && 
                (this.isDigit(this.sourceCode[this.position]) || 
                 this.sourceCode[this.position] === '.')) {
@@ -102,6 +128,7 @@ class JavaLexer {
             if (this.sourceCode[this.position] === '.') {
                 if (hasDecimal) {
                     isValid = false; // Múltiples puntos decimales
+                    console.log("❌ Número con múltiples puntos decimales");
                 }
                 hasDecimal = true;
             }
@@ -111,11 +138,13 @@ class JavaLexer {
         }
 
         const lexeme = this.sourceCode.substring(start, this.position);
+        console.log(`🔢 Número encontrado: '${lexeme}'`);
         
         if (!isValid) {
             this.addError(`Número decimal inválido: '${lexeme}'`, startLine, startColumn);
         } else {
             const type = hasDecimal ? 'DECIMAL' : 'ENTERO';
+            console.log(`   → Tipo: ${type}`);
             this.addToken(lexeme, type, startLine, startColumn);
         }
     }
@@ -126,6 +155,8 @@ class JavaLexer {
         const startLine = this.line;
         const startColumn = this.column;
         
+        console.log(`📝 Leyendo cadena desde posición ${start}`);
+        
         this.position++; // Saltar la comilla inicial
         this.column++;
 
@@ -134,6 +165,7 @@ class JavaLexer {
             
             if (this.sourceCode[this.position] === '\n') {
                 this.addError('Cadena sin cerrar', startLine, startColumn);
+                console.log("❌ Cadena sin cerrar (salto de línea encontrado)");
                 return;
             }
             
@@ -143,6 +175,7 @@ class JavaLexer {
 
         if (this.position >= this.sourceCode.length) {
             this.addError('Cadena sin cerrar', startLine, startColumn);
+            console.log("❌ Cadena sin cerrar (fin de archivo)");
             return;
         }
 
@@ -150,6 +183,7 @@ class JavaLexer {
         this.column++;
 
         const lexeme = this.sourceCode.substring(start, this.position);
+        console.log(`📝 Cadena encontrada: ${lexeme}`);
         this.addToken(lexeme, 'CADENA', startLine, startColumn);
     }
 
@@ -159,11 +193,14 @@ class JavaLexer {
         const startLine = this.line;
         const startColumn = this.column;
         
+        console.log(`🔤 Leyendo carácter desde posición ${start}`);
+        
         this.position++; // Saltar la comilla inicial
         this.column++;
 
         if (this.position >= this.sourceCode.length) {
             this.addError('Carácter mal formado', startLine, startColumn);
+            console.log("❌ Carácter mal formado (fin de archivo)");
             return;
         }
 
@@ -174,6 +211,7 @@ class JavaLexer {
         if (this.position >= this.sourceCode.length || 
             this.sourceCode[this.position] !== "'") {
             this.addError('Carácter mal formado', startLine, startColumn);
+            console.log("❌ Carácter mal formado (falta comilla final)");
             return;
         }
 
@@ -181,6 +219,7 @@ class JavaLexer {
         this.column++;
 
         const lexeme = this.sourceCode.substring(start, this.position);
+        console.log(`🔤 Carácter encontrado: ${lexeme}`);
         this.addToken(lexeme, 'CARACTER', startLine, startColumn);
     }
 
@@ -188,6 +227,8 @@ class JavaLexer {
     readComment() {
         const startLine = this.line;
         const startColumn = this.column;
+        
+        console.log(`💬 Leyendo comentario desde posición ${this.position}`);
         
         this.position++; // Saltar el primer '/'
         this.column++;
@@ -200,34 +241,32 @@ class JavaLexer {
         const nextChar = this.sourceCode[this.position];
         
         if (nextChar === '/') {
-            // Comentario de línea
+            console.log("   → Comentario de línea");
             this.readLineComment();
         } else if (nextChar === '*') {
-            // Comentario de bloque
+            console.log("   → Comentario de bloque");
             this.readBlockComment();
         } else {
-            // Es el operador división
+            console.log("   → Operador división");
             this.addToken('/', 'SIMBOLO', startLine, startColumn);
         }
     }
 
-    // js/lexer.js - Actualizar el método readLineComment()
-readLineComment() {
-    const start = this.position - 1; // Incluye el primer '/'
-    const startLine = this.line;
-    const startColumn = this.column - 1;
+    readLineComment() {
+        const start = this.position - 1; // Incluye el primer '/'
+        const startLine = this.line;
+        const startColumn = this.column - 1;
 
-    // Solo avanzar hasta el siguiente salto de línea
-    while (this.position < this.sourceCode.length && 
-           this.sourceCode[this.position] !== '\n') {
-        this.position++;
-        this.column++;
+        while (this.position < this.sourceCode.length && 
+               this.sourceCode[this.position] !== '\n') {
+            this.position++;
+            this.column++;
+        }
+
+        const lexeme = this.sourceCode.substring(start, this.position);
+        console.log(`💬 Comentario de línea: ${lexeme}`);
+        this.addToken(lexeme, 'COMENTARIO_LINEA', startLine, startColumn);
     }
-
-    const lexeme = this.sourceCode.substring(start, this.position);
-    this.addToken(lexeme, 'COMENTARIO_LINEA', startLine, startColumn);
-    
-}
 
     readBlockComment() {
         const start = this.position - 1; // Incluye el primer '/'
@@ -237,15 +276,14 @@ readLineComment() {
         this.position++; // Saltar el '*'
         this.column++;
 
+        let commentClosed = false;
         while (this.position < this.sourceCode.length - 1) {
             if (this.sourceCode[this.position] === '*' && 
                 this.sourceCode[this.position + 1] === '/') {
                 this.position += 2; // Saltar '*/'
                 this.column += 2;
-                
-                const lexeme = this.sourceCode.substring(start, this.position);
-                this.addToken(lexeme, 'COMENTARIO_BLOQUE', startLine, startColumn);
-                return;
+                commentClosed = true;
+                break;
             }
 
             if (this.sourceCode[this.position] === '\n') {
@@ -258,54 +296,72 @@ readLineComment() {
             this.position++;
         }
 
-        this.addError('Comentario de bloque sin cerrar', startLine, startColumn);
+        if (!commentClosed) {
+            this.addError('Comentario de bloque sin cerrar', startLine, startColumn);
+            console.log("❌ Comentario de bloque sin cerrar");
+            return;
+        }
+
+        const lexeme = this.sourceCode.substring(start, this.position);
+        console.log(`💬 Comentario de bloque: ${lexeme.substring(0, 50)}...`);
+        this.addToken(lexeme, 'COMENTARIO_BLOQUE', startLine, startColumn);
     }
 
     // AFD para símbolos
-   readSymbol() {
-    const start = this.position;
-    const startLine = this.line;
-    const startColumn = this.column;
+    readSymbol() {
+        const start = this.position;
+        const startLine = this.line;
+        const startColumn = this.column;
 
-    const char = this.sourceCode[this.position];
-    
-    // Verificar símbolos de dos caracteres primero
-    if (this.position + 1 < this.sourceCode.length) {
-        const nextChar = this.sourceCode[this.position + 1];
-        const twoCharSymbol = char + nextChar;
+        const char = this.sourceCode[this.position];
+        console.log(`🔣 Procesando símbolo: '${char}' en posición ${start}`);
         
-        if (this.symbols.has(twoCharSymbol)) {
-            this.position += 2;
-            this.column += 2;
-            this.addToken(twoCharSymbol, 'SIMBOLO', startLine, startColumn);
+        // Verificar símbolos de dos caracteres primero
+        if (this.position + 1 < this.sourceCode.length) {
+            const nextChar = this.sourceCode[this.position + 1];
+            const twoCharSymbol = char + nextChar;
+            
+            console.log(`   → Probando símbolo de 2 chars: '${twoCharSymbol}'`);
+            
+            if (this.symbols.has(twoCharSymbol)) {
+                this.position += 2;
+                this.column += 2;
+                console.log(`   → Símbolo de 2 caracteres encontrado: '${twoCharSymbol}'`);
+                this.addToken(twoCharSymbol, 'SIMBOLO', startLine, startColumn);
+                return;
+            }
+        }
+
+        // Verificar símbolos de un carácter
+        console.log(`   → Probando símbolo de 1 char: '${char}'`);
+        if (this.symbols.has(char)) {
+            this.position++;
+            this.column++;
+            console.log(`   → Símbolo de 1 carácter encontrado: '${char}'`);
+            this.addToken(char, 'SIMBOLO', startLine, startColumn);
             return;
         }
-    }
 
-    // Verificar símbolos de un carácter
-    if (this.symbols.has(char)) {
+        // Si no es un símbolo reconocido, es error
+        console.log(`❌ Símbolo no reconocido: '${char}'`);
+        this.addError(`Carácter no reconocido: '${char}'`, startLine, startColumn);
         this.position++;
         this.column++;
-        this.addToken(char, 'SIMBOLO', startLine, startColumn);
-        return;
     }
 
-    // Si no es un símbolo reconocido, es error
-    this.addError(`Carácter no reconocido: '${char}'`, startLine, startColumn);
-    this.position++;
-    this.column++;
-}
     // Métodos auxiliares
     isWhitespace(char) {
         return char === ' ' || char === '\t' || char === '\n' || char === '\r';
     }
 
     skipWhitespace() {
+        console.log(`   ␣ Saltando whitespace...`);
         while (this.position < this.sourceCode.length && 
                this.isWhitespace(this.sourceCode[this.position])) {
             if (this.sourceCode[this.position] === '\n') {
                 this.line++;
                 this.column = 1;
+                console.log(`     ↳ Salto de línea, nueva línea: ${this.line}`);
             } else {
                 this.column++;
             }
@@ -323,23 +379,27 @@ readLineComment() {
 
     isSymbol(char) {
         return this.symbols.has(char) || 
-               ['=', '!', '>', '<', '+', '-'].includes(char); // Para símbolos compuestos
+               ['=', '!', '>', '<', '+', '-'].includes(char);
     }
 
     addToken(lexeme, type, line, column) {
-        this.tokens.push({
+        const token = {
             lexeme: lexeme,
             type: type,
             line: line,
             column: column
-        });
+        };
+        this.tokens.push(token);
+        console.log(`   ✅ Token agregado: {lexeme: '${lexeme}', type: '${type}', line: ${line}, column: ${column}}`);
     }
 
     addError(message, line = this.line, column = this.column) {
-        this.errors.push({
+        const error = {
             message: message,
             line: line,
             column: column
-        });
+        };
+        this.errors.push(error);
+        console.log(`   ❌ Error agregado:`, error);
     }
 }

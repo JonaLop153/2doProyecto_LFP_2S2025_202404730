@@ -18,38 +18,54 @@ class JavaBridgeApp {
         this.simulateBtn.addEventListener('click', () => this.simulate());
     }
 
-    translate() {
-        const javaSource = this.javaCode.value;
-        
-        // Análisis léxico
-        const lexer = new JavaLexer(javaSource);
-        const lexerResult = lexer.analyze();
+  translate() {
+    const javaSource = this.javaCode.value;
+    console.log("=== INICIANDO TRADUCCIÓN ===");
+    console.log("Código Java:", javaSource);
+    
+    // Análisis léxico
+     console.log("1. Análisis léxico...");
+    const lexer = new JavaLexer(javaSource);
+    const lexerResult = lexer.analyze();
 
-        this.displayErrors(lexerResult.errors, 'léxicos');
-        this.displayTokens(lexerResult.tokens);
+    console.log("=== TOKENS GENERADOS ===");
+    lexerResult.tokens.forEach((token, index) => {
+        console.log(`${index}: '${token.lexeme}' (${token.type})`);
+    });
+    console.log("=========================");
+    console.log("Errores léxicos:", lexerResult.errors);
 
-        if (lexerResult.errors.length > 0) {
-            this.pythonCode.value = "// Errores léxicos encontrados. Corrígelos para generar la traducción.";
-            return;
-        }
+    this.displayErrors(lexerResult.errors, 'léxicos');
+    this.displayTokens(lexerResult.tokens);
 
-        // Análisis sintáctico
-        const parser = new JavaParser(lexerResult.tokens);
-        const parserResult = parser.parse();
-
-        this.displayErrors(parserResult.errors, 'sintácticos');
-
-        if (parserResult.errors.length > 0) {
-            this.pythonCode.value = "// Errores sintácticos encontrados. Corrígelos para generar la traducción.";
-            return;
-        }
-
-        // Traducción (próxima fase)
-        this.pythonCode.value = "// Análisis exitoso - Traducción pendiente de implementar\n";
-        this.pythonCode.value += "// AST generado correctamente";
-        
-        console.log("AST:", parserResult.ast); // Para debugging
+    if (lexerResult.errors.length > 0) {
+        this.pythonCode.value = "# Errores léxicos encontrados. Corrígelos para generar la traducción.";
+        return;
     }
+
+    // Análisis sintáctico
+    console.log("2. Análisis sintáctico...");
+    const parser = new JavaParser(lexerResult.tokens); // ← Usar el nuevo parser
+    const parserResult = parser.parse();
+    console.log("Parser completado. AST:", parserResult.ast ? "Sí" : "No", "Errores:", parserResult.errors.length);
+
+    this.displayErrors(parserResult.errors, 'sintácticos');
+
+    if (parserResult.errors.length > 0) {
+        this.pythonCode.value = "# Errores sintácticos encontrados. Corrígelos para generar la traducción.";
+        return;
+    }
+
+    // TRADUCCIÓN
+    console.log("3. Traducción...");
+    const translator = new JavaToPythonTranslator();
+    const pythonCode = translator.translate(parserResult.ast);
+    console.log("Traducción completada");
+    
+    this.pythonCode.value = pythonCode;
+    
+    console.log("=== TRADUCCIÓN COMPLETADA ===");
+}
 
     showTokens() {
         const javaSource = this.javaCode.value;
@@ -61,7 +77,8 @@ class JavaBridgeApp {
     }
 
     simulate() {
-        alert("Simulación de ejecución - Pendiente de implementar");
+        // Por ahora solo muestra el código Python
+        alert("Simulación de ejecución - En desarrollo\nPor ahora puedes copiar el código Python y ejecutarlo localmente.");
     }
 
     displayTokens(tokens) {
